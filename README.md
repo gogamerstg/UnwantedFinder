@@ -238,4 +238,8 @@ python upload/clear_web_data.py
 
 Type CONFIRM. The database is now empty.
 
+<<<<<<< HEAD
 Developed by Debug Thug Stopping Trafficking, One Byte at a Time.
+=======
+Developed by Debug Thug Stopping Trafficking, One Byte at a Time.
+>>>>>>> 71d036af01d2b3be1a1488d94876c0cfec44bd41
