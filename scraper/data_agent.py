@@ -2,88 +2,61 @@ import pandas as pd
 import requests
 import time
 import hashlib
-from datetime import datetime, timedelta
+from datetime import datetime
 import os
 import json
 import random
-import re
+from keywords import get_mixed_batch # IMPORTING YOUR NEW DB
 
-print("--- SHIELD 1.0: STEALTH DATA AGENT (HYBRID MODE) ---")
+print("--- SHIELD 1.0: REAL DATA AGENT (SMART-BATCH MODE) ---")
 
 class ShieldAgent:
     def __init__(self):
-        # 1. SEARCH QUERIES
-        self.search_queries = [
-            'wickr menu', 'telegram plug', 'stealth shipping', 
-            'oxycodone for sale', 'painkillers dm', 'darknet vendor',
-            'mtp kit buy', 'abortion pills', 'sleeping pills no rx',
-            'ganja home delivery', 'maal for sale', 'chitta drug',
-            'g@nja', 'bh4ang', 'we#d', 'ch4r@s', 'af!m'
+        # 1. ROTATING USER AGENTS
+        self.user_agents = [
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:124.0) Gecko/20100101 Firefox/124.0',
+            'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
         ]
-        
-        # 2. FAKE DATA TEMPLATES (For Simulation Mode)
-        self.simulation_templates = [
-            "DM for menu. Shipping worldwide. 100% legit {drug}. #safe #{drug}",
-            "Bulk orders of {drug} available. Wickr me: fastplug. Price list in bio.",
-            "Touchdown! New stock of {drug} just landed. Telegram link in bio.",
-            "Selling leftover script {drug}. DM me for prices. Cash/BTC only.",
-            "Brother need {drug}? I have best quality maal. Contact me.",
-            "Discrete delivery of {drug} available in Delhi/Mumbai. Cash on delivery.",
-            "MTP Kit available fast shipping. No prescription needed."
-        ]
-        self.drugs = ['Xanax', 'Oxy', 'Weed', 'Ganja', 'Charas', 'MTP Kit', 'Steroids']
-        self.users = ['dark_knight', 'blue_sky', 'city_plug', 'meds_24x7', 'crypto_vendor', 'anon_user']
 
-        # 3. REQUEST HEADERS (To look like a real browser)
-        self.headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.5'
+    def get_headers(self):
+        return {
+            'User-Agent': random.choice(self.user_agents),
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
+            'Referer': 'https://www.google.com/',
+            'DNT': '1'
         }
 
     def fetch_reddit_data(self, query):
-        """Attempts to fetch real data with error handling."""
         print(f" [AGNT] Scanning frequency: '{query}'...")
-        url = f"https://www.reddit.com/search.json?q={query}&sort=new&limit=5"
-        try:
-            response = requests.get(url, headers=self.headers, timeout=5) # Short timeout
-            if response.status_code == 200:
-                return response.json().get('data', {}).get('children', [])
-            elif response.status_code == 429:
-                print(" [WARN] Rate limited. Skipping...")
-        except Exception as e:
-            print(f" [WARN] Connection blocked ({e}). Skipping...")
-        return []
-
-    def generate_simulation_data(self):
-        """Generates realistic fake data when internet/scraping fails."""
-        print(" [AGNT] !!! NETWORK HOSTILE. ENGAGING SIMULATION PROTOCOL !!!")
-        data = []
-        network_links = []
+        url = f"https://www.reddit.com/search.json?q={query}&sort=relevance&limit=5"
         
-        for _ in range(random.randint(5, 10)): # Generate 5-10 fake posts
-            user = f"{random.choice(self.users)}_{random.randint(10,99)}"
-            drug = random.choice(self.drugs)
-            template = random.choice(self.simulation_templates)
-            content = template.replace("{drug}", drug)
+        try:
+            response = requests.get(url, headers=self.get_headers(), timeout=10)
             
-            intel = {
-                'id': hashlib.md5((content + str(time.time())).encode()).hexdigest()[:12],
-                'user': user,
-                'content': content,
-                'platform': random.choice(['Instagram', 'Reddit', 'Telegram']),
-                'timestamp': datetime.now().isoformat(),
-                'risk_score': random.randint(75, 99),
-                'type': 'Dealer',
-                'url': '#', # No real link for sim data
-                'query_source': 'simulation'
-            }
-            data.append(intel)
+            if response.status_code == 200:
+                data = response.json().get('data', {}).get('children', [])
+                if not data:
+                    print(f"   > No results found for '{query}'")
+                return data
             
-            # Fake Graph Connection
-            network_links.append({'source': user, 'target': f"buyer_{random.randint(100,999)}"})
+            elif response.status_code == 429:
+                print("   [WARN] Rate limited. Cooling down...")
+                time.sleep(5)
+                return []
+            elif response.status_code == 403:
+                print("   [WARN] Access Forbidden. Rotating Identity...")
+                time.sleep(2)
+                return []
+            else:
+                print(f"   [WARN] HTTP {response.status_code}. Skipping...")
+                
+        except Exception as e:
+            print(f"   [WARN] Connection issue ({e}). Skipping...")
             
-        return data, network_links
+        return []
 
     def generate_intelligence(self):
         data = []
@@ -91,14 +64,20 @@ class ShieldAgent:
         
         print(" [AGNT] Initializing Surveillance...")
         
-        # 1. Try Real Scraping
+        # --- AUTO-BATCHING LOGIC (Using the new Dictionary) ---
+        # Gets 5 keywords: 3 Common + 2 Deep/Rare
+        active_queries = get_mixed_batch(batch_size=5)
+        print(f" [AGNT] Auto-Selected Targets: {active_queries}")
+        
         scraped_count = 0
-        for query in self.search_queries[:5]: # Only try first 5 to save time/errors
+        
+        for query in active_queries:
             posts = self.fetch_reddit_data(query)
             if posts:
                 for p in posts:
                     item = p['data']
                     content = item.get('selftext', item.get('title', ''))
+                    
                     if len(content) < 10: continue
                     
                     intel = {
@@ -114,19 +93,18 @@ class ShieldAgent:
                     }
                     data.append(intel)
                     scraped_count += 1
-                    # Basic Graph
                     network_links.append({'source': intel['user'], 'target': 'Hub'})
             
-            time.sleep(1) # Wait 1s between requests
+            # Random delay
+            sleep_time = random.uniform(3, 6)
+            print(f"   > Waiting {sleep_time:.1f}s...")
+            time.sleep(sleep_time)
 
-        # 2. Check & Fallback
         if scraped_count == 0:
-            # If real scraping failed completely, use simulation
-            sim_data, sim_links = self.generate_simulation_data()
-            data.extend(sim_data)
-            network_links.extend(sim_links)
+            print(" [WARN] No actionable intel found on this batch.")
+            return None, None
         
-        # 3. Save
+        # Save
         df = pd.DataFrame(data)
         os.makedirs('../data', exist_ok=True)
         
