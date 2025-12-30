@@ -1,0 +1,111 @@
+SHIELD 1.0: End-to-End Workflow
+
+This document illustrates the complete data lifecycle and operational steps for the SHIELD 1.0 Intelligence Platform.
+
+graph TD
+    %% --- STEP 1: INITIALIZATION ---
+    subgraph "Phase 1: Initialization & Security"
+        A[Start: python run_shield.py] --> B{Select Option}
+        B -- "Option 1: Surveillance" --> C[Initialize Modules]
+        B -- "Option 2: Deploy" --> D[Deploy to Firebase]
+        C --> E[Load Config & API Keys]
+        E --> F[Authenticate Firestore Admin]
+    end
+
+    %% --- STEP 2: DATA INGESTION ---
+    subgraph "Phase 2: The Data Agent (Ingestion)"
+        F --> G[scraper/data_agent.py]
+        G --> H[Select Keywords]
+        H -- "Auto-Batch" --> I[Pick 5 Random from Tier 1-6]
+        I --> J[Fetch Reddit Data]
+        J -- "Success" --> K[Scrape JSON API]
+        J -- "Fail/Block" --> L[Rotate User-Agent / Wait]
+        K --> M[Filter: Ignore 'Clothing/Retail']
+        M --> N[Generate Raw Intel Objects]
+    end
+
+    %% --- STEP 3: PROCESSING ---
+    subgraph "Phase 3: The Risk Engine (Processing)"
+        N --> O[ml/risk_engine.py]
+        O --> P[De-Obfuscation: 'g@nja' -> 'ganja']
+        P --> Q[Language Detect: 'hi' or 'en']
+        Q --> R{Is English?}
+        R -- "No" --> S[Translate via Google API]
+        R -- "Yes" --> T[Proceed]
+        S --> T
+        T --> U[Score Risk: Keywords * Weight]
+        U --> V[Assign Status: CRITICAL / SUSPICIOUS]
+    end
+
+    %% --- STEP 4: STORAGE & SYNC ---
+    subgraph "Phase 4: Cloud Sync (Storage)"
+        V --> W[upload/cloud_sync.py]
+        W --> X[Fetch Existing Network Graph]
+        X --> Y[Merge New Links + Old Links]
+        Y --> Z[Batch Upload Intel to Firestore]
+        Z --> AA[Update Global Stats Counters]
+    end
+
+    %% --- STEP 5: VISUALIZATION ---
+    subgraph "Phase 5: The Dashboard (Frontend)"
+        AA --> AB[Browser: frontend/index.html]
+        AB --> AC{User Login}
+        AC -- "Unauthorized Email" --> AD[ACCESS DENIED / Auto-Logout]
+        AC -- "Authorized Agent" --> AE[Unlock Dashboard]
+        AE --> AF[Real-Time Listeners (WebSockets)]
+        AF --> AG[Render Live Feed & Leaderboard]
+        AF --> AH[Render Physics Graph (Vis.js)]
+    end
+
+    %% --- LEGEND ---
+    style A fill:#f9f,stroke:#333,stroke-width:2px
+    style L fill:#f96,stroke:#333,stroke-width:2px
+    style AD fill:#f55,stroke:#333,stroke-width:2px
+    style AE fill:#9f9,stroke:#333,stroke-width:2px
+
+
+📝 Workflow Summary
+
+1. Initialization
+
+Run python run_shield.py.
+
+Choose Option 1 (Surveillance) or Option 2 (Web Deploy).
+
+System loads firebase-service-account.json for admin access.
+
+2. Data Ingestion (The Spy)
+
+Target: Reddit public search API.
+
+Queries: Auto-selects a batch of 5 keywords from a tiered dictionary (High Risk -> Regional Slang).
+
+Stealth: Rotates User-Agents and introduces random delays to avoid detection.
+
+Filter: Removes irrelevant noise (e.g., "shirt", "size", "vintage").
+
+3. Processing (The Brain)
+
+De-Obfuscate: Cleans Leetspeak (w33d → weed).
+
+Translate: Detects Hindi/foreign text and translates to English using deep_translator.
+
+Score: Calculates threat level (0-99) based on keyword density and type.
+
+4. Storage (The Vault)
+
+Merge: Downloads old network graph, adds new connections, removes duplicates to build a persistent map.
+
+Upload: Pushes cleaned data to Firebase Firestore (Cloud Database) with retry logic.
+
+Accumulate: Updates total counts (Total Scanned, Active Dealers).
+
+5. Visualization (The Command Center)
+
+Security: Google Login checks email against ALLOWED_AGENTS whitelist. Server-side rules enforce this.
+
+Live Stream: Web page listens for database changes instantly via WebSockets.
+
+Graph: Renders interactive node-link diagram of dealers/buyers using Vis.js.
+
+Action: Clickable "Open Link" buttons for verification and Leaderboard for target prioritization.
