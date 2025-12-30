@@ -2,7 +2,12 @@
 
 Smart Hackathon for Intelligence, Enforcement, Law & Defence
 
-Team: DEBUG THUG
+Team: DEBUG THUGS
+
+Team Members Name 
+1. Suraj Kumar Das
+2. Vedant Sharma
+3. Sejal Jain
 
 Theme: Trafficking / Drug Enforcement
 
