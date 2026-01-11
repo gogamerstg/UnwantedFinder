@@ -203,7 +203,7 @@ python run_shield.py
 
 Select Option 2: DEPLOY DASHBOARD TO WEB.
 
-Click the link provided (e.g., https://your-project.web.app).
+Click the link provided (e.g., https://unwantedfinder.web.app).
 
 Phase 2: Start Surveillance (Backend)
 
