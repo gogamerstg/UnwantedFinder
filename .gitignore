@@ -1,0 +1,22 @@
+# --- SECURITY: NEVER UPLOAD THESE ---
+upload/firebase-service-account.json
+*.pem
+*.key
+.env
+
+# --- Python System Files ---
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+
+# --- Generated Data (Optional: Keep repo clean) ---
+data/*.csv
+data/*.json
+# But keep the folder itself
+!data/.gitkeep
+
+# --- IDE Settings ---
+.vscode/
+.idea/

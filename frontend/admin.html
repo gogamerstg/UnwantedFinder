@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SHIELD 1.0 | ADMIN COMMAND</title>
+    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-compat.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>body { background-color: #0f172a; color: #f8fafc; font-family: monospace; }</style>
+</head>
+<body class="p-10 flex flex-col items-center justify-center min-h-screen">
+
+    <!-- LOGIN -->
+    <div id="login-box" class="text-center">
+        <h1 class="text-4xl font-bold text-red-500 mb-6">RESTRICTED COMMAND CENTER</h1>
+        <p class="text-slate-400 mb-8">VERIFICATION REQUIRED: ADMIN CLEARANCE LEVEL 5</p>
+        <button onclick="login()" class="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-8 rounded shadow-lg transition">AUTHENTICATE (GOOGLE)</button>
+        <p id="error" class="text-red-400 mt-4 font-bold hidden"></p>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div id="dashboard" class="hidden w-full max-w-5xl">
+        <div class="flex justify-between items-center mb-8 border-b border-slate-700 pb-4">
+            <div>
+                <h1 class="text-2xl font-bold text-green-400">ADMINISTRATOR CONSOLE</h1>
+                <p class="text-slate-500 text-xs">Logged in as: <span id="admin-email" class="text-white"></span></p>
+            </div>
+            <div class="flex gap-4">
+                <button onclick="window.location.href='index.html'" class="text-xs bg-slate-800 text-blue-400 border border-blue-900 px-3 py-1 rounded">VIEW PUBLIC SITE</button>
+                <button onclick="logout()" class="text-xs bg-red-900/20 text-red-400 border border-red-900 px-3 py-1 rounded">LOGOUT</button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- Viewer Logs -->
+            <div class="bg-slate-800 rounded border border-slate-700 overflow-hidden">
+                <div class="p-4 bg-slate-900 font-bold border-b border-slate-700 flex justify-between">
+                    <span>PUBLIC ACCESS LOGS</span>
+                    <span class="text-xs text-slate-500">Real-time Tracking</span>
+                </div>
+                <div id="logs" class="p-4 h-96 overflow-y-auto space-y-3 text-xs font-mono">
+                    <p class="text-slate-500 text-center mt-10">Loading logs...</p>
+                </div>
+            </div>
+
+            <!-- Controls -->
+            <div class="space-y-6">
+                <div class="bg-slate-800 p-6 rounded border border-slate-700">
+                    <h3 class="font-bold text-lg mb-4 text-red-400">🚨 DANGER ZONE</h3>
+                    <p class="text-slate-400 text-xs mb-4">Actions here are irreversible. Proceed with caution.</p>
+                    <button onclick="alert('To PURGE: Open Terminal and run: python upload/clear_web_data.py')" class="w-full bg-red-900/50 hover:bg-red-900 text-white py-4 rounded font-bold border border-red-500 transition">
+                        ☢️ PURGE ALL DATABASE DATA
+                    </button>
+                </div>
+                
+                <div class="bg-slate-800 p-6 rounded border border-slate-700">
+                    <h3 class="font-bold text-lg mb-4 text-blue-400">📊 SYSTEM HEALTH</h3>
+                    <div class="space-y-2 text-sm text-slate-300">
+                        <p>Database Status: <span class="text-green-400">ONLINE</span></p>
+                        <p>Risk Engine: <span class="text-green-400">ACTIVE</span></p>
+                        <p>Security Rules: <span class="text-green-400">ENFORCED</span></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAlUnrGOCvqMe3u5iO9_hmyU_4VX-6KTMc",
+            authDomain: "unwantedfinder.firebaseapp.com",
+            projectId: "unwantedfinder",
+            storageBucket: "unwantedfinder.firebasestorage.app",
+            messagingSenderId: "155647389524",
+            appId: "1:155647389524:web:28adf9a0bfcbc5fd7fa2c1",
+            measurementId: "G-FSGE4LS883"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        const provider = new firebase.auth.GoogleAuthProvider();
+
+        const ADMIN_EMAIL = "gogamerstg@gmail.com";
+
+        function login() {
+            auth.signInWithPopup(provider).catch(e => {
+                document.getElementById('error').innerText = e.message;
+                document.getElementById('error').classList.remove('hidden');
+            });
+        }
+
+        function logout() { auth.signOut(); window.location.reload(); }
+
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                if (user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+                    document.getElementById('login-box').classList.add('hidden');
+                    document.getElementById('dashboard').classList.remove('hidden');
+                    document.getElementById('admin-email').innerText = user.email;
+                    loadLogs();
+                } else {
+                    document.getElementById('error').innerText = "ACCESS DENIED: " + user.email + " is not an admin.";
+                    document.getElementById('error').classList.remove('hidden');
+                    auth.signOut();
+                }
+            }
+        });
+
+        function loadLogs() {
+            db.collection('access_logs').orderBy('timestamp', 'desc').limit(50).onSnapshot(snap => {
+                const div = document.getElementById('logs');
+                if(snap.empty) { div.innerHTML = "<p class='text-slate-500'>No logs found.</p>"; return; }
+                
+                div.innerHTML = snap.docs.map(d => {
+                    const l = d.data();
+                    const time = l.timestamp ? new Date(l.timestamp.seconds*1000).toLocaleString() : 'Just now';
+                    const loc = l.location === "Unknown" ? "Location Denied" : `Lat: ${l.location.lat}, Lng: ${l.location.lng}`;
+                    const statusColor = l.status === "GRANTED" ? "text-green-400" : "text-red-400";
+                    return `
+                    <div class="border-b border-slate-700 pb-2">
+                        <div class="flex justify-between">
+                            <span class="text-slate-400">[${time}]</span>
+                            <span class="${statusColor} font-bold">${l.status}</span>
+                        </div>
+                        <div class="text-white font-bold">${l.email || "Unknown Email"}</div>
+                        <div class="text-slate-300 truncate">${l.userAgent}</div>
+                        <div class="text-blue-400 mt-1">${loc}</div>
+                    </div>`;
+                }).join('');
+            });
+        }
+    </script>
+</body>
+</html>
